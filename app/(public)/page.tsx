@@ -1,7 +1,7 @@
 import { turso } from '@/lib/db';
 import Link from 'next/link';
 
-// Helper untuk format tanggal menjadi seperti "29 Jul 2026"
+// Helper untuk format tanggal menjadi seperti "30 Jul 2026"
 const formatDate = (dateString: string) => {
   if (!dateString) return 'Baru saja';
   const date = new Date(dateString);
@@ -11,7 +11,7 @@ const formatDate = (dateString: string) => {
 export default async function HomePage({ searchParams }: { searchParams: { page?: string } }) {
   // Setup Pagination
   const currentPage = parseInt(searchParams?.page || '1');
-  const limit = 12; // Menampilkan 12 video per halaman (rapi untuk grid)
+  const limit = 19; // Menampilkan 12 video per halaman (rapi untuk grid)
   const offset = (currentPage - 1) * limit;
 
   // 1. Ambil Video dari Database
@@ -21,14 +21,21 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
   });
   const videos = videosRes.rows;
 
-  // 2. Hitung Total Halaman untuk Paginasi (Misal 2/9)
+  // 2. Hitung Total Halaman untuk Paginasi
   const countRes = await turso.execute("SELECT COUNT(*) as total FROM videos");
   const totalVideos = Number(countRes.rows[0].total);
   const totalPages = Math.ceil(totalVideos / limit) || 1;
 
-  // 3. Ambil Pengaturan Iklan
-  const settingsRes = await turso.execute("SELECT * FROM settings WHERE id = 1");
-  const ads = settingsRes.rows[0] || {};
+  // 3. Ambil Pengaturan Iklan (PERBAIKAN DI SINI: menggunakan LIMIT 1)
+  let ads: any = {};
+  try {
+    const settingsRes = await turso.execute("SELECT * FROM settings LIMIT 1");
+    if (settingsRes.rows.length > 0) {
+      ads = settingsRes.rows[0];
+    }
+  } catch (error) {
+    console.error("Gagal mengambil data settings:", error);
+  }
 
   return (
     <div>
@@ -118,7 +125,7 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
             )}
           </div>
           
-          {/* Angka Halaman (Contoh: 2/9) */}
+          {/* Angka Halaman */}
           <div style={{ marginTop: '10px', color: '#777', fontSize: '15px', fontWeight: 'bold' }}>
             {currentPage} / {totalPages}
           </div>
