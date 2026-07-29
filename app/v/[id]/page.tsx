@@ -84,7 +84,7 @@ export default async function VideoPlayer({
   };
 
   // AMBIL LINK OFFER DARI DATABASE SETTINGS (Key: url_offer)
-  const targetOfferUrl = ads.url_offer || '#';
+  const targetOfferUrl = ads_offer_link || '#';
 
   return (
     <>
