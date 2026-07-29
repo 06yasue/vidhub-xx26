@@ -65,10 +65,11 @@ export default function ListPage() {
             <table className="table table-striped table-hover">
               <thead>
                 <tr>
-                  <th width="80">Thumb</th>
+                  {/* PERBAIKAN DI SINI: Menggunakan style={{ width: '...' }} */}
+                  <th style={{ width: '80px' }}>Thumb</th>
                   <th>Judul Video</th>
-                  <th width="80">Views</th>
-                  <th width="200">Aksi</th>
+                  <th style={{ width: '80px' }}>Views</th>
+                  <th style={{ width: '200px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
