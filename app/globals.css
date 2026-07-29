@@ -1,0 +1,18 @@
+/* Menghilangkan garis hitam/outline bawaan browser saat elemen diklik/fokus */
+*:focus {
+  outline: none !important;
+}
+
+a:focus, 
+button:focus, 
+input:focus, 
+textarea:focus, 
+.form-control:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Sedikit tambahan agar background body sedikit abu-abu (opsional) */
+body {
+  background-color: #f8f9fa;
+}
