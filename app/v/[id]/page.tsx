@@ -4,28 +4,40 @@ import HitCounter from '@/components/HitCounter';
 
 export const revalidate = 60; // Cache 60 detik
 
-export default async function VideoPlayer({ params }: { params: { id: string } }) {
-  const res = await turso.execute({
-    sql: "SELECT * FROM videos WHERE id = ?",
-    args: [params.id]
-  });
+export default async function VideoPlayer({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  // 1. Await params (Sangat penting untuk Next.js 16)
+  const { id } = await params;
 
-  const video = res.rows[0];
+  let video = null;
 
-  // Jika ID video tidak ditemukan -> Lempar langsung ke halaman 404
+  // 2. Gunakan try-catch agar jika DB bermasalah web tidak langsung crash 500
+  try {
+    const res = await turso.execute({
+      sql: "SELECT * FROM videos WHERE id = ?",
+      args: [id]
+    });
+    video = res.rows[0];
+  } catch (error) {
+    console.error("Gagal konek ke Turso:", error);
+  }
+
+  // 3. Jika video tidak ditemukan / DB error, lempar ke Halaman 404
   if (!video) {
     notFound();
   }
 
   return (
     <div className="row">
-      {/* Jalankan peningkat hit count secara otomatis */}
-      <HitCounter videoId={params.id} />
+      {/* Hit counter di background */}
+      <HitCounter videoId={id} />
 
       <div className="col-md-8 col-md-offset-2">
         <h2>{video.title as string}</h2>
         
-        {/* Tampilan Hit Count */}
         <p className="text-muted" style={{ marginBottom: '15px' }}>
           <span className="glyphicon glyphicon-eye-open"></span> {(video.hitcount as number) || 0} x ditonton
         </p>
