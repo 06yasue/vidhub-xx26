@@ -1,5 +1,5 @@
 export const metadata = { title: 'Video Portal' };
-
+import '../globals.css';
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
