@@ -139,7 +139,7 @@ export default async function VideoPlayer({
       {/* ================= SLOT IKLAN ATAS ================= */}
       {ads.ads_head_global && (
         <div className="text-center" style={{ margin: '15px auto' }}>
-          <AdDisplay htmlString={ads.ads_head_global as string} />
+          <AdDisplay htmlString={ads.ads_head as string} />
         </div>
       )}
 
