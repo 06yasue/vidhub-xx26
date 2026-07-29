@@ -63,12 +63,10 @@ export default function SettingsPage() {
     return <div className="text-center" style={{ marginTop: '50px' }}>Loading data...</div>;
   }
 
+
   return (
     <div className="row">
       <div className="col-md-8 col-md-offset-2">
-        <h3>Pengaturan Slot Iklan</h3>
-        
-        {/* Notifikasi tanpa alert JS */}
         {message.text && (
           <div className={`alert alert-${message.type}`}>
             {message.text}
@@ -77,46 +75,50 @@ export default function SettingsPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="panel panel-default">
-            <div className="panel-heading"><strong>Iklan Head & Footer (Global)</strong></div>
+            <div className="panel-heading">
+              <h3 className="panel-title"><span className="material-icons">public</span> Iklan Global (Head & Footer)</h3>
+            </div>
             <div className="panel-body">
               <div className="form-group">
-                <label>Iklan Area Head (Script Adsterra / Monetag / Popunder)</label>
-                <textarea name="ads_head" className="form-control" rows={3} value={ads.ads_head} onChange={handleChange} placeholder="<script>...</script>"></textarea>
+                <label>Iklan Area Head (Script Adsterra / Monetag)</label>
+                <textarea name="ads_head" className="form-control" rows={3} value={ads.ads_head} onChange={handleChange}></textarea>
               </div>
               <div className="form-group">
                 <label>Iklan Area Footer</label>
-                <textarea name="ads_footer" className="form-control" rows={3} value={ads.ads_footer} onChange={handleChange} placeholder="<script>...</script>"></textarea>
+                <textarea name="ads_footer" className="form-control" rows={3} value={ads.ads_footer} onChange={handleChange}></textarea>
               </div>
             </div>
           </div>
 
           <div className="panel panel-default">
-            <div className="panel-heading"><strong>Iklan Area Halaman Video</strong></div>
+            <div className="panel-heading">
+              <h3 className="panel-title"><span className="material-icons">smart_display</span> Iklan Area Video Player</h3>
+            </div>
             <div className="panel-body">
               <div className="form-group">
                 <label>Iklan Area Body (Bawah Video Player)</label>
-                <textarea name="ads_body" className="form-control" rows={3} value={ads.ads_body} onChange={handleChange} placeholder="<script>...</script>"></textarea>
+                <textarea name="ads_body" className="form-control" rows={3} value={ads.ads_body} onChange={handleChange}></textarea>
               </div>
               <div className="form-group">
                 <label>Iklan Khusus Ponsel / Mobile</label>
-                <textarea name="ads_mobile" className="form-control" rows={3} value={ads.ads_mobile} onChange={handleChange} placeholder="Banner 300x250 dll"></textarea>
+                <textarea name="ads_mobile" className="form-control" rows={3} value={ads.ads_mobile} onChange={handleChange}></textarea>
               </div>
               <div className="form-group">
                 <label>Iklan Khusus Desktop</label>
-                <textarea name="ads_desktop" className="form-control" rows={3} value={ads.ads_desktop} onChange={handleChange} placeholder="Banner 728x90 dll"></textarea>
+                <textarea name="ads_desktop" className="form-control" rows={3} value={ads.ads_desktop} onChange={handleChange}></textarea>
               </div>
               <div className="form-group">
                 <label>Offer Link / Direct Link Iklan</label>
-                <input type="url" name="ads_offer_link" className="form-control" value={ads.ads_offer_link} onChange={handleChange} placeholder="https://..." />
+                <input type="url" name="ads_offer_link" className="form-control" value={ads.ads_offer_link} onChange={handleChange} />
               </div>
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
-            {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+          <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
+            <span className="material-icons">save</span> {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
           </button>
         </form>
-        <br /><br />
+        <br />
       </div>
     </div>
   );
