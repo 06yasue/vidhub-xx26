@@ -1,81 +1,136 @@
-import Link from 'next/link';
 import { turso } from '@/lib/db';
+import Link from 'next/link';
 
-export const revalidate = 60; // Cache 60 detik agar Vercel irit
+// Helper untuk format tanggal menjadi seperti "29 Jul 2026"
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'Baru saja';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
-export default async function HomePage() {
-  // Ambil daftar 12 video terbaru dari database Turso
-  let videos: any[] = [];
-  try {
-    const res = await turso.execute("SELECT * FROM videos ORDER BY created_at DESC LIMIT 12");
-    videos = res.rows;
-  } catch (error) {
-    console.error("Gagal mengambil data dari Turso:", error);
-  }
+export default async function HomePage({ searchParams }: { searchParams: { page?: string } }) {
+  // Setup Pagination
+  const currentPage = parseInt(searchParams?.page || '1');
+  const limit = 12; // Menampilkan 12 video per halaman (rapi untuk grid)
+  const offset = (currentPage - 1) * limit;
+
+  // 1. Ambil Video dari Database
+  const videosRes = await turso.execute({
+    sql: "SELECT * FROM videos ORDER BY created_at DESC LIMIT ? OFFSET ?",
+    args: [limit, offset]
+  });
+  const videos = videosRes.rows;
+
+  // 2. Hitung Total Halaman untuk Paginasi (Misal 2/9)
+  const countRes = await turso.execute("SELECT COUNT(*) as total FROM videos");
+  const totalVideos = Number(countRes.rows[0].total);
+  const totalPages = Math.ceil(totalVideos / limit) || 1;
+
+  // 3. Ambil Pengaturan Iklan
+  const settingsRes = await turso.execute("SELECT * FROM settings WHERE id = 1");
+  const ads = settingsRes.rows[0] || {};
 
   return (
     <div>
-      {/* Bagian Header / Coming Soon */}
-      <div className="jumbotron text-center" style={{ backgroundColor: '#f8f9fa', borderRadius: '10px' }}>
-        <h2>🔥 Upcoming Project Video Portal</h2>
-        <p className="text-muted">
-          Platform streaming video sedang dalam tahap pengembangan. Tonton koleksi video terbaru kami di bawah ini!
-        </p>
-      </div>
-
-      <hr />
+      {/* ================= AREA IKLAN ATAS RESPONSIVE ================= */}
+      {/* Iklan ini HANYA tampil di Desktop (Disembunyikan di ukuran XS/Ponsel) */}
+      {ads.ads_desktop && (
+        <div className="hidden-xs text-center" style={{ marginBottom: '25px' }} dangerouslySetInnerHTML={{ __html: ads.ads_desktop as string }} />
+      )}
       
-      <div className="row" style={{ marginBottom: '20px' }}>
-        <div className="col-md-12">
-          <h3>Video Terbaru</h3>
-        </div>
-      </div>
+      {/* Iklan ini HANYA tampil di Mobile/Ponsel (Disembunyikan di Desktop) */}
+      {ads.ads_mobile && (
+        <div className="visible-xs-block text-center" style={{ marginBottom: '25px' }} dangerouslySetInnerHTML={{ __html: ads.ads_mobile as string }} />
+      )}
 
-      {/* Grid Daftar Video */}
+
+      {/* ================= AREA CARD VIDEO ================= */}
       <div className="row">
-        {videos.length === 0 ? (
-          <div className="col-md-12 text-center">
-            <p className="text-muted" style={{ padding: '50px 0' }}>
-              Belum ada video yang di-upload. Silakan upload via Dashboard Admin.
-            </p>
-          </div>
-        ) : (
-          videos.map((video) => (
-            <div key={video.id as string} className="col-md-3 col-sm-6">
-              <div className="thumbnail" style={{ borderRadius: '8px', overflow: 'hidden' }}>
-                {/* Menampilkan Gambar Thumbnail */}
-                <img 
-                  src={(video.thumbnail_url as string) || "https://via.placeholder.com/300x170?text=No+Thumbnail"} 
-                  alt={video.title as string} 
-                  style={{ width: '100%', height: '160px', objectFit: 'cover' }} 
-                />
-                <div className="caption">
-                  {/* Judul Video */}
-                  <h4 style={{ 
-                    fontSize: '16px', 
-                    height: '40px', 
+        {videos.map((vid: any) => (
+          <div className="col-md-3 col-sm-4 col-xs-6" key={vid.id} style={{ marginBottom: '25px' }}>
+            <Link href={`/v/${vid.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="thumbnail" style={{ 
+                border: 'none', 
+                borderRadius: '8px', 
+                boxShadow: '0 4px 10px rgba(0,0,0,0.08)', 
+                overflow: 'hidden',
+                transition: 'transform 0.2s',
+                backgroundColor: '#fff'
+              }}>
+                {/* Thumbnail Ratio 16:9 */}
+                <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#000' }}>
+                  <img 
+                    src={vid.thumbnail_url} 
+                    alt={vid.title} 
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                </div>
+                
+                {/* Info Card */}
+                <div className="caption" style={{ padding: '12px' }}>
+                  {/* Judul: Jika kepanjangan otomatis terpotong jadi ... */}
+                  <h5 style={{ 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    color: '#222',
+                    whiteSpace: 'nowrap', 
                     overflow: 'hidden', 
-                    textOverflow: 'ellipsis',
-                    fontWeight: 'bold'
+                    textOverflow: 'ellipsis' 
                   }}>
-                    {video.title as string}
-                  </h4>
+                    {vid.title}
+                  </h5>
                   
-                  {/* Hit Count di Homepage */}
-                  <p className="text-muted" style={{ fontSize: '12px' }}>
-                    <span className="glyphicon glyphicon-eye-open"></span> {(video.hitcount as number) || 0}x ditonton
-                  </p>
-                  
-                  {/* Tombol Nonton */}
-                  <Link href={`/v/${video.id}`} className="btn btn-primary btn-block">
-                    Tonton Video
-                  </Link>
+                  {/* Area Create Date & Views */}
+                  <div className="text-muted" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span><i className="material-icons" style={{ fontSize: '12px', verticalAlign: 'text-bottom' }}>schedule</i> {formatDate(vid.created_at)}</span>
+                    <span><i className="material-icons" style={{ fontSize: '12px', verticalAlign: 'text-bottom' }}>visibility</i> {vid.hitcount || 0}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            </Link>
+          </div>
+        ))}
+        {videos.length === 0 && (
+           <div className="col-12 text-center text-muted" style={{ padding: '50px 0' }}>
+             Belum ada video yang diunggah.
+           </div>
         )}
       </div>
+
+
+      {/* ================= AREA PAGINATION ================= */}
+      {totalPages > 1 && (
+        <div className="text-center" style={{ marginTop: '20px', marginBottom: '30px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '15px' }}>
+            {/* Tombol Prev */}
+            {currentPage > 1 ? (
+              <Link href={`/?page=${currentPage - 1}`} className="btn btn-default" style={{ fontWeight: 'bold' }}>&laquo; Prev</Link>
+            ) : (
+              <button className="btn btn-default" disabled style={{ fontWeight: 'bold' }}>&laquo; Prev</button>
+            )}
+            
+            {/* Tombol Next */}
+            {currentPage < totalPages ? (
+              <Link href={`/?page=${currentPage + 1}`} className="btn btn-default" style={{ fontWeight: 'bold' }}>Next &raquo;</Link>
+            ) : (
+              <button className="btn btn-default" disabled style={{ fontWeight: 'bold' }}>Next &raquo;</button>
+            )}
+          </div>
+          
+          {/* Angka Halaman (Contoh: 2/9) */}
+          <div style={{ marginTop: '10px', color: '#777', fontSize: '15px', fontWeight: 'bold' }}>
+            {currentPage} / {totalPages}
+          </div>
+        </div>
+      )}
+
+
+      {/* ================= AREA IKLAN BODY KESELURUHAN ================= */}
+      {ads.ads_body && (
+        <div className="text-center" style={{ marginTop: '40px', marginBottom: '10px', padding: '15px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #eee' }} dangerouslySetInnerHTML={{ __html: ads.ads_body as string }} />
+      )}
+
     </div>
   );
 }
