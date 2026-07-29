@@ -5,7 +5,7 @@ import AdDisplay from '@/components/AdDisplay';
 import { siteConfig } from '@/config';
 import { Metadata } from 'next';
 
-export const revalidate = 60; // Cache 60 detik
+export const revalidate = 60; 
 
 // ================= AREA SEO DINAMIS =================
 export async function generateMetadata({ 
@@ -63,7 +63,7 @@ export default async function VideoPlayer({
     });
     video = videoRes.rows[0];
 
-    // 2. Ambil Data Pengaturan/Iklan
+    // 2. Ambil Data Pengaturan/Iklan dari tabel "settings"
     const settingsRes = await turso.execute("SELECT * FROM settings");
     settingsRes.rows.forEach((row) => {
       ads[row.key as string] = row.value;
@@ -73,392 +73,66 @@ export default async function VideoPlayer({
     console.error("Gagal konek ke Turso:", error);
   }
 
-  // Jika DB error atau video tidak ada, lemparkan ke 404
   if (!video) {
     notFound();
   }
 
-  // Format Tanggal
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Baru';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  // URL Target Offer (Bisa dari seting DB atau default fallback)
-  const targetOfferUrl = ads.url_offer || siteConfig.url_ref || '#';
-  const telegramUrl = ads.telegram_url || 'https://t.me/GrupTelegramAnda';
+  // AMBIL LINK OFFER DARI DATABASE SETTINGS (Key: url_offer)
+  const targetOfferUrl = ads.url_offer || '#';
 
   return (
     <>
-      {/* Hit counter diletakkan tersembunyi agar view tetap terhitung */}
       <HitCounter videoId={id} />
 
-      {/* 
-        MENGGUNAKAN CSS PERSIS SESUAI PERMINTAAN TANPA DIUBAH 
-        (Dimasukkan melalui style global page khusus komponen ini)
-      */}
       <style dangerouslySetInnerHTML={{__html: `
-        * {
-            -webkit-box-sizing: border-box;
-            -moz-box-sizing: border-box;
-            box-sizing: border-box;
-        }
-        body {
-            background-color: #0f172a !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #f8fafc;
-            -webkit-font-smoothing: antialiased;
-        }
-        .main-wrapper {
-            width: 100%;
-            padding: 0;
-            margin: 0 auto;
-        }
-        .player-panel {
-            background-color: #1e293b;
-            border: none;
-            border-radius: 0;
-            margin-bottom: 0;
-            box-shadow: none !important;
-            -webkit-box-shadow: none !important;
-        }
-        .player-header {
-            background-color: #0f172a;
-            border-bottom: 1px solid #334155;
-            padding: 12px 16px;
-        }
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-        .brand-logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 1.2px;
-            color: #38bdf8;
-            text-transform: uppercase;
-        }
-        .btn-register {
-            background-color: #38bdf8;
-            color: #0f172a !important;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 6px 14px;
-            border-radius: 4px;
-            text-decoration: none !important;
-            transition: all 0.2s ease;
-            display: inline-block;
-        }
-        .btn-register:hover {
-            background-color: #7dd3fc;
-            color: #0f172a !important;
-        }
-        .header-divider {
-            height: 1px;
-            background-color: #334155;
-            margin: 10px 0;
-            width: 100%;
-        }
-        .video-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff; /* Diubah jadi putih agar terbaca di background gelap */
-            margin: 0;
-            line-height: 1.5;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-            display: block;
-        }
-        .player-body-wrapper {
-            padding: 0;
-            position: relative;
-            background-color: #000000;
-        }
-        .video-container {
-            position: relative;
-            width: 100%;
-            padding-top: 56.25%;
-            background-size: cover;
-            background-position: center;
-            cursor: pointer;
-            overflow: hidden;
-        }
-        .badge-hd {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: #ef4444;
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 3px;
-            z-index: 2;
-            letter-spacing: 0.5px;
-        }
-        .video-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.45);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background 0.2s ease;
-            z-index: 3;
-        }
-        .video-container:hover .video-overlay {
-            background: rgba(15, 23, 42, 0.65);
-        }
-        .yt-play-btn {
-            width: 68px;
-            height: 46px;
-            background-color: #000000;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
-        }
-        .video-container:hover .yt-play-btn {
-            background-color: #020617;
-            transform: scale(1.08);
-            border-color: #38bdf8;
-        }
-        .loading-state {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-        }
-        .spinner-custom {
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top: 3px solid #38bdf8;
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading-text {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: #f8fafc;
-        }
-        .video-progress-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            z-index: 4;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background-color: #38bdf8;
-            transition: width 0.15s ease;
-        }
-        .player-footer {
-            background-color: #1e293b;
-            padding: 16px;
-            border-top: 1px solid #334155;
-        }
-        .video-meta-info {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 500;
-            color: #94a3b8;
-            margin-bottom: 14px;
-        }
-        .meta-left {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .meta-dot {
-            color: #475569;
-        }
-        .download-box-wrapper {
-            background-color: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 16px;
-        }
-        .download-info-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 11px;
-            color: #94a3b8;
-        }
-        .download-speed-badge {
-            color: #22c55e;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .btn-download {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 14px;
-            font-weight: 700;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            border: none;
-            color: #ffffff;
-            box-shadow: none !important;
-            -webkit-box-shadow: none !important;
-            transition: all 0.2s ease;
-            text-decoration: none !important;
-        }
-        .btn-download:hover {
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-            color: #ffffff;
-            transform: translateY(-1px);
-        }
-        .ads-native-container {
-            width: 100%;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .ads-label {
-            display: block;
-            font-size: 10px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .ads-slot {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            margin: 0 auto;
-            min-height: 250px;
-        }
-        .copyright-area {
-            text-align: center;
-            padding: 24px 16px 80px 16px;
-            font-size: 12px;
-            color: #64748b;
-            font-weight: 500;
-            background-color: #0f172a;
-        }
-        .floating-telegram {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #0284c7;
-            color: #ffffff;
-            padding: 10px 18px;
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none !important;
-            z-index: 9999;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-        }
-        .floating-telegram:hover {
-            background-color: #0369a1;
-            color: #ffffff;
-            transform: translateY(-2px);
-        }
-        @media (max-width: 767px) {
-            .main-wrapper {
-                width: 100%;
-                padding: 0;
-            }
-            .player-panel {
-                border-left: none;
-                border-right: none;
-                border-radius: 0;
-            }
-            .ads-slot {
-                width: 100%;
-                max-width: 300px;
-                min-height: 250px;
-            }
-        }
-        @media (min-width: 768px) {
-            .main-wrapper {
-                max-width: 720px;
-                margin: 40px auto 0 auto;
-                padding: 0 15px;
-            }
-            .player-panel {
-                border: 1px solid #334155;
-                border-radius: 8px;
-                overflow: hidden;
-            }
-            .player-header {
-                padding: 16px 20px;
-            }
-            .video-title {
-                font-size: 15px;
-            }
-            .yt-play-btn {
-                width: 74px;
-                height: 50px;
-                border-radius: 14px;
-            }
-            .player-footer {
-                padding: 20px;
-            }
-            .btn-download {
-                padding: 14px 20px;
-                font-size: 15px;
-            }
-            .ads-slot {
-                width: 100%;
-                min-height: 90px;
-            }
-            .copyright-area {
-                padding: 24px 16px 40px 16px;
-            }
-        }
+        * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+        body { background-color: #0f172a !important; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #f8fafc; -webkit-font-smoothing: antialiased; }
+        .main-wrapper { width: 100%; padding: 0; margin: 0 auto; }
+        .player-panel { background-color: #1e293b; border: none; border-radius: 0; margin-bottom: 0; box-shadow: none !important; -webkit-box-shadow: none !important; }
+        .player-header { background-color: #0f172a; border-bottom: 1px solid #334155; padding: 12px 16px; }
+        .header-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .brand-logo { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; letter-spacing: 1.2px; color: #38bdf8; text-transform: uppercase; }
+        .btn-register { background-color: #38bdf8; color: #0f172a !important; font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 4px; text-decoration: none !important; transition: all 0.2s ease; display: inline-block; }
+        .btn-register:hover { background-color: #7dd3fc; color: #0f172a !important; }
+        .header-divider { height: 1px; background-color: #334155; margin: 10px 0; width: 100%; }
+        .video-title { font-size: 13px; font-weight: 600; color: #ffffff; margin: 0; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; display: block; }
+        .player-body-wrapper { padding: 0; position: relative; background-color: #000000; }
+        .video-container { position: relative; width: 100%; padding-top: 56.25%; background-size: cover; background-position: center; cursor: pointer; overflow: hidden; }
+        .badge-hd { position: absolute; top: 12px; right: 12px; background: #ef4444; color: #ffffff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 3px; z-index: 2; letter-spacing: 0.5px; }
+        .video-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.45); display: flex; justify-content: center; align-items: center; transition: background 0.2s ease; z-index: 3; }
+        .video-container:hover .video-overlay { background: rgba(15, 23, 42, 0.65); }
+        .yt-play-btn { width: 68px; height: 46px; background-color: #000000; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; }
+        .video-container:hover .yt-play-btn { background-color: #020617; transform: scale(1.08); border-color: #38bdf8; }
+        .loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; }
+        .spinner-custom { border: 3px solid rgba(255, 255, 255, 0.2); border-top: 3px solid #38bdf8; border-radius: 50%; width: 38px; height: 38px; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; color: #f8fafc; }
+        .video-progress-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: rgba(255, 255, 255, 0.2); z-index: 4; }
+        .progress-fill { height: 100%; width: 0%; background-color: #38bdf8; transition: width 0.15s ease; }
+        .player-footer { background-color: #1e293b; padding: 16px; border-top: 1px solid #334155; }
+        .video-meta-info { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; color: #94a3b8; margin-bottom: 14px; }
+        .meta-left { display: flex; align-items: center; gap: 6px; }
+        .meta-item { display: inline-flex; align-items: center; gap: 4px; }
+        .meta-dot { color: #475569; }
+        .download-box-wrapper { background-color: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+        .download-info-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 11px; color: #94a3b8; }
+        .download-speed-badge { color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .btn-download { display: flex !important; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 700; border-radius: 6px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border: none; color: #ffffff; box-shadow: none !important; -webkit-box-shadow: none !important; transition: all 0.2s ease; text-decoration: none !important; }
+        .btn-download:hover { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); color: #ffffff; transform: translateY(-1px); }
+        .ads-native-container { width: 100%; text-align: center; margin-top: 10px; }
+        .ads-label { display: block; font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .ads-slot { display: flex; justify-content: center; align-items: center; width: 100%; margin: 0 auto; min-height: 250px; }
+        .copyright-area { text-align: center; padding: 24px 16px 80px 16px; font-size: 12px; color: #64748b; font-weight: 500; background-color: #0f172a; }
+        .floating-telegram { position: fixed; bottom: 20px; right: 20px; background-color: #0284c7; color: #ffffff; padding: 10px 18px; border-radius: 50px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; text-decoration: none !important; z-index: 9999; transition: all 0.2s ease; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); }
+        .floating-telegram:hover { background-color: #0369a1; color: #ffffff; transform: translateY(-2px); }
+        @media (max-width: 767px) { .main-wrapper { width: 100%; padding: 0; } .player-panel { border-left: none; border-right: none; border-radius: 0; } .ads-slot { width: 100%; max-width: 300px; min-height: 250px; } }
+        @media (min-width: 768px) { .main-wrapper { max-width: 720px; margin: 40px auto 0 auto; padding: 0 15px; } .player-panel { border: 1px solid #334155; border-radius: 8px; overflow: hidden; } .player-header { padding: 16px 20px; } .video-title { font-size: 15px; } .yt-play-btn { width: 74px; height: 50px; border-radius: 14px; } .player-footer { padding: 20px; } .btn-download { padding: 14px 20px; font-size: 15px; } .ads-slot { width: 100%; min-height: 90px; } .copyright-area { padding: 24px 16px 40px 16px; } }
       `}} />
 
       {/* ================= SLOT IKLAN ATAS ================= */}
@@ -477,7 +151,7 @@ export default async function VideoPlayer({
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="#38bdf8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                           <span>{siteConfig.site_name}</span>
                       </div>
-                      <a href={targetOfferUrl} target="_blank" rel="noopener noreferrer" className="btn-register">Buat Akun</a>
+                      <a href={siteConfig.url_ref} target="_blank" rel="noopener noreferrer" className="btn-register">Buat Akun</a>
                   </div>
                   <div className="header-divider"></div>
                   <h1 className="video-title" title={video.title}>{video.title}</h1>
@@ -561,12 +235,12 @@ export default async function VideoPlayer({
       </div>
 
       {/* ================= TOMBOL TELEGRAM ================= */}
-      <a href={telegramUrl} className="floating-telegram" target="_blank" rel="noopener noreferrer">
+      <a href="https://t.me/GrupTelegramAnda" className="floating-telegram" target="_blank" rel="noopener noreferrer">
           <svg className="notranslate" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.888-.662 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
           <span>Join Grup Telegram</span>
       </a>
 
-      {/* ================= SCRIPT INTERAKTIF ANIMASI PROGRESS ================= */}
+      {/* ================= SCRIPT INTERAKTIF ================= */}
       <script dangerouslySetInnerHTML={{ __html: `
           var embedUrl = "${video.embed_url}";
           var videoContainer = document.getElementById("videoContainer");
