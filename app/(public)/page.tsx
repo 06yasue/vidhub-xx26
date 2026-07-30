@@ -24,7 +24,7 @@ export default async function HomePage(props: any) {
   const sp = await props.searchParams;
   const currentPage = parseInt(sp?.page || '1');
   
-  const limit = 12; 
+  const limit = 24; 
   const offset = (currentPage - 1) * limit;
 
   // PERBAIKAN: Mendeklarasikan tipe data secara eksplisit agar lolos TypeScript build
