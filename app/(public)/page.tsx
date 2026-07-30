@@ -148,7 +148,7 @@ export default async function HomePage(props: any) {
                 
                 <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
                   <img 
-                    src={(vid.thumbnail_url as string) || '/noimg.jpg'} 
+                    src={(vid.thumbnail_url as string) || 'https://i.ibb.co.com/ksHknqJL/360-F-484887682-Mx57wp-HG4l-Kr-PAG0y7-Q8-Q7b-J952-J3-TTO.jpg'} 
                     alt={vid.title} 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
