@@ -16,3 +16,38 @@ textarea:focus,
 body {
   background-color: #f8f9fa;
 }
+/* =========================================
+   CUSTOM HEADER & FOOTER COLOR LINE
+   ========================================= */
+
+/* Garis warna gradasi di bagian BAWAH header */
+.header-wrapper {
+  position: relative;
+}
+
+.header-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 50%, #8b5cf6 100%);
+  z-index: 1001;
+}
+
+/* Garis warna gradasi di bagian ATAS footer */
+.footer-wrapper {
+  position: relative;
+  border-top: none !important; /* Menghilangkan border bawaan sebelumnya */
+}
+
+.footer-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #0ea5e9 100%);
+}
