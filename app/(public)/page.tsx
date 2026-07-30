@@ -14,22 +14,21 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// Fungsi untuk membuat URL ramah SEO (Contoh: video-lucu-banget)
+// Fungsi untuk membuat URL ramah SEO
 const makeSlug = (text: any) => {
   if (!text) return '';
   return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
-// Menggunakan props default dan di-await untuk kompatibilitas Next.js terbaru
 export default async function HomePage(props: any) {
-  // Await searchParams untuk mengatasi bug pagination
   const sp = await props.searchParams;
   const currentPage = parseInt(sp?.page || '1');
   
   const limit = 12; 
   const offset = (currentPage - 1) * limit;
 
-  let videos = [];
+  // PERBAIKAN: Mendeklarasikan tipe data secara eksplisit agar lolos TypeScript build
+  let videos: any[] = [];
   let totalPages = 1;
 
   try {
@@ -46,11 +45,11 @@ export default async function HomePage(props: any) {
     console.error("Gagal mengambil data video:", error);
   }
 
-  let ads: any = {};
+  let ads: Record<string, any> = {};
   try {
     const settingsRes = await turso.execute("SELECT * FROM settings");
-    settingsRes.rows.forEach((row) => {
-      ads[row.key as string] = row.value;
+    settingsRes.rows.forEach((row: any) => {
+      ads[row.key] = row.value;
     });
   } catch (error) {
     console.error("Gagal mengambil data settings:", error);
@@ -67,16 +66,14 @@ export default async function HomePage(props: any) {
           .ads-mobile-wrapper { display: none !important; }
         }
 
-        /* Container text video dibuat fixed height agar tinggi card sama semua */
         .video-info-container {
           padding: 10px 12px;
-          height: 75px; /* Kunci tinggi area teks */
+          height: 75px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
 
-        /* Styling judul di dalam card (Maksimal 2 baris + Titik-titik) */
         .video-card-title {
           margin: 0;
           font-weight: 600;
@@ -84,7 +81,7 @@ export default async function HomePage(props: any) {
           color: #1e293b;
           line-height: 1.4;
           display: -webkit-box;
-          -webkit-line-clamp: 2; /* Potong setelah 2 baris */
+          -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -92,7 +89,7 @@ export default async function HomePage(props: any) {
         
         @media (min-width: 768px) {
           .video-info-container {
-            height: 80px; /* Sedikit lebih tinggi di desktop */
+            height: 80px;
           }
           .video-card-title {
             font-size: 14px;
@@ -100,7 +97,6 @@ export default async function HomePage(props: any) {
         }
       `}} />
 
-      {/* ================= AREA IKLAN ATAS ================= */}
       {ads.ads_desktop && (
         <div className="ads-desktop-wrapper">
           <AdDisplay htmlString={ads.ads_desktop as string} />
@@ -113,7 +109,6 @@ export default async function HomePage(props: any) {
         </div>
       )}
 
-      {/* ================= AREA HEADER KONTEN ================= */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -132,11 +127,9 @@ export default async function HomePage(props: any) {
         </h2>
       </div>
 
-      {/* ================= AREA CARD VIDEO ================= */}
       <div className="row">
         {videos.map((vid: any) => (
           <div className="col-xs-6 col-sm-4 col-md-4" key={vid.id} style={{ marginBottom: '20px' }}>
-            {/* prefetch={false} membantu mencegah bug pagination cache */}
             <Link 
               href={`/v/${vid.id}_${makeSlug(vid.title)}`} 
               prefetch={false}
@@ -153,9 +146,7 @@ export default async function HomePage(props: any) {
                 flexDirection: 'column'
               }}>
                 
-                {/* Thumbnail 16:9 */}
                 <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
-                  {/* Jika URL dari DB kosong, otomatis panggil /noimg.jpg */}
                   <img 
                     src={(vid.thumbnail_url as string) || '/noimg.jpg'} 
                     alt={vid.title} 
@@ -163,7 +154,6 @@ export default async function HomePage(props: any) {
                   />
                 </div>
                 
-                {/* Info Card dengan Tinggi Tetap (Sama Rata) */}
                 <div className="video-info-container">
                   <h4 className="video-card-title" title={vid.title}>
                     {vid.title}
@@ -187,7 +177,6 @@ export default async function HomePage(props: any) {
         )}
       </div>
 
-      {/* ================= AREA PAGINATION ================= */}
       {totalPages > 1 && (
         <div className="text-center" style={{ marginTop: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
@@ -209,7 +198,6 @@ export default async function HomePage(props: any) {
         </div>
       )}
 
-      {/* ================= IKLAN BODY ================= */}
       {ads.ads_body && (
         <div className="text-center" style={{ marginTop: '20px', marginBottom: '20px' }}>
           <AdDisplay htmlString={ads.ads_body as string} />
