@@ -94,7 +94,8 @@ export default async function VideoPlayer({
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
         * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
-        body { background-color: #0f172a !important; margin: 0; padding: 0; color: #f8fafc; -webkit-font-smoothing: antialiased; }
+        body { background-color: #0f172a !important; margin: 0; padding: 0; color: #f8fafc; font-family: 'Poppins', sans-serif !important;
+            -webkit-font-smoothing: antialiased;  -webkit-font-smoothing: antialiased; }
         
         /* Flexbox pada main-wrapper untuk mendorong footer ke bawah */
         .main-wrapper { width: 100%; padding: 0; margin: 0 auto; display: flex; flex-direction: column; flex-grow: 1; }
