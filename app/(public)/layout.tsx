@@ -1,9 +1,10 @@
 import '../globals.css';
 import { siteConfig } from '@/config'; 
 import { Metadata } from 'next';
+import { turso } from '@/lib/db';
+import AdDisplay from '@/components/AdDisplay'; // Pastikan komponen ini tersedia
 
 // ================= AREA SEO SUPER =================
-// Menggunakan Metadata API Next.js agar ter-render sempurna di <head>
 export const metadata: Metadata = {
   title: `${siteConfig.site_name} - Watch Exclusive & Premium Videos Online`,
   description: `Discover the best collection of high-quality videos on ${siteConfig.site_name}. Stream your favorite content online for free, anywhere and anytime.`,
@@ -36,111 +37,127 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+// Ubah menjadi async function agar bisa memanggil database
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  
+  // ================= AMBIL DATA IKLAN DARI DATABASE =================
+  let ads: any = {};
+  try {
+    const settingsRes = await turso.execute("SELECT * FROM settings");
+    settingsRes.rows.forEach((row) => {
+      ads[row.key as string] = row.value;
+    });
+  } catch (error) {
+    console.error("Gagal konek ke Turso:", error);
+  }
+
   return (
     <html lang="en">
       <head>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
+        {/* IMPORT GOOGLE MATERIAL ICONS */}
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+        
+        {/* SLOT IKLAN MURNI DI DALAM TAG HEAD (Jika diperlukan dari DB) */}
+        {ads.ads_head && (
+          <script dangerouslySetInnerHTML={{ __html: ads.ads_head }} />
+        )}
+
         <style dangerouslySetInnerHTML={{__html: `
           body { 
-            background-color: #f4f7f6; 
+            background-color: #f8fafc; 
             display: flex; 
             flex-direction: column; 
             min-height: 100vh; 
             margin: 0;
             padding: 0;
             overflow-x: hidden; /* MENCEGAH LAYAR DIGESER KE KANAN/KIRI */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           }
           .main-content { 
             flex: 1; 
             padding-top: 20px;
+            padding-bottom: 40px;
           }
           
-          /* HEADER STYLING */
+          /* HEADER STYLING DENGAN DESAIN BARU */
           .navbar-custom {
             background-color: #ffffff;
             border: none;
-            border-bottom: 2px solid #eaeaea;
             border-radius: 0;
             margin-bottom: 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
           }
           .navbar-header-custom {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
+            height: 70px;
           }
           .navbar-brand { 
             display: flex; 
             align-items: center; 
-            padding: 15px; 
-            height: auto;
+            padding: 0 15px; 
+            height: 100%;
           }
           .navbar-brand img { 
-            height: 35px; 
+            height: 40px; 
             margin-right: 12px; 
             object-fit: contain; 
           }
           .navbar-brand b {
-            color: #222;
-            font-size: 22px;
+            color: #0f172a;
+            font-size: 24px;
             letter-spacing: -0.5px;
+            font-weight: 800;
           }
+          
+          /* TOMBOL CREATE ACCOUNT DENGAN ICON */
           .btn-create-account {
-            background-color: #3b82f6;
-            color: white;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white !important;
             font-weight: 600;
-            padding: 8px 18px;
-            border-radius: 4px;
+            font-size: 14px;
+            padding: 10px 22px;
+            border-radius: 50px;
             border: none;
             margin-right: 15px;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+            text-decoration: none !important;
           }
           .btn-create-account:hover {
-            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
             color: white;
-            text-decoration: none;
           }
 
-          /* FOOTER STYLING */
+          /* FOOTER STYLING MINIMALIS */
           .footer { 
-            background: #111827; 
-            color: #9ca3af; 
-            padding: 40px 0 20px 0; 
-            margin-top: 50px; 
+            background: #0f172a; 
+            color: #94a3b8; 
+            padding: 30px 0; 
+            margin-top: auto; 
             text-align: center; 
-            font-size: 14px; 
-          }
-          .footer-title {
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 10px;
-          }
-          .footer-desc {
-            max-width: 500px;
-            margin: 0 auto 20px auto;
-            line-height: 1.6;
-          }
-          .footer-links {
-            margin-bottom: 15px;
-          }
-          .footer-links a { 
-            color: #d1d5db; 
-            margin: 0 12px; 
-            text-decoration: none; 
-            font-weight: 500;
-          }
-          .footer-links a:hover { 
-            color: #ffffff; 
-            text-decoration: underline;
           }
           .copyright {
-            border-top: 1px solid #374151;
-            padding-top: 15px;
-            margin-top: 15px;
             font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+          }
+          .ads-container {
+            margin: 20px auto;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: center;
           }
         `}} />
       </head>
@@ -161,12 +178,21 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 rel="noopener noreferrer" 
                 className="btn-create-account" 
               >
+                {/* ICON DARI GOOGLE FONTS */}
+                <span className="material-icons" style={{ fontSize: '18px' }}>person_add</span>
                 Create Account
               </a>
             </div>
           </div>
         </nav>
         
+        {/* SLOT IKLAN VISUAL BAWAH HEADER (Membaca ads_head_global) */}
+        {ads.ads_head_global && (
+          <div className="container ads-container" style={{ marginTop: '20px', marginBottom: '0' }}>
+            <AdDisplay htmlString={ads.ads_head_global as string} />
+          </div>
+        )}
+
         {/* CONTENT AREA */}
         <div className="container main-content">
           {children}
@@ -175,19 +201,18 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         {/* FOOTER AREA */}
         <footer className="footer">
           <div className="container">
-            <div className="footer-title">{siteConfig.site_name}</div>
-            <p className="footer-desc">
-              Your premium destination for discovering and streaming the best video content online. Fast, secure, and always accessible.
-            </p>
-            <div className="footer-links">
-              <a href="#">Terms of Service</a>
-              <a href="#">Privacy Policy</a>
-              <a href="#">DMCA</a>
-              <a href="#">Contact Us</a>
-            </div>
+            
+            {/* SLOT IKLAN AREA FOOTER (Membaca ads_footer) */}
+            {ads.ads_footer && (
+              <div className="ads-container" style={{ marginTop: '0', marginBottom: '20px' }}>
+                <AdDisplay htmlString={ads.ads_footer as string} />
+              </div>
+            )}
+
             <div className="copyright">
               &copy; {new Date().getFullYear()} {siteConfig.site_name}. All rights reserved.
             </div>
+
           </div>
         </footer>
       </body>
