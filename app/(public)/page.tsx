@@ -15,29 +15,36 @@ const formatDate = (dateString: string) => {
 };
 
 // Fungsi untuk membuat URL ramah SEO (Contoh: video-lucu-banget)
-const makeSlug = (text: string) => {
+const makeSlug = (text: any) => {
   if (!text) return '';
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
-// Gunakan tipe 'any' sementara dan await untuk kompatibilitas Next.js 14 & 15
-export default async function HomePage({ searchParams }: { searchParams: any }) {
-  // Await searchParams untuk mengatasi bug pagination di versi Next.js terbaru
-  const sp = await searchParams;
+// Menggunakan props default dan di-await untuk kompatibilitas Next.js terbaru
+export default async function HomePage(props: any) {
+  // Await searchParams untuk mengatasi bug pagination
+  const sp = await props.searchParams;
   const currentPage = parseInt(sp?.page || '1');
   
   const limit = 12; 
   const offset = (currentPage - 1) * limit;
 
-  const videosRes = await turso.execute({
-    sql: "SELECT * FROM videos ORDER BY created_at DESC LIMIT ? OFFSET ?",
-    args: [limit, offset]
-  });
-  const videos = videosRes.rows;
+  let videos = [];
+  let totalPages = 1;
 
-  const countRes = await turso.execute("SELECT COUNT(*) as total FROM videos");
-  const totalVideos = Number(countRes.rows[0].total);
-  const totalPages = Math.ceil(totalVideos / limit) || 1;
+  try {
+    const videosRes = await turso.execute({
+      sql: "SELECT * FROM videos ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      args: [limit, offset]
+    });
+    videos = videosRes.rows;
+
+    const countRes = await turso.execute("SELECT COUNT(*) as total FROM videos");
+    const totalVideos = Number(countRes.rows[0]?.total || 0);
+    totalPages = Math.ceil(totalVideos / limit) || 1;
+  } catch (error) {
+    console.error("Gagal mengambil data video:", error);
+  }
 
   let ads: any = {};
   try {
@@ -131,7 +138,7 @@ export default async function HomePage({ searchParams }: { searchParams: any }) 
           <div className="col-xs-6 col-sm-4 col-md-4" key={vid.id} style={{ marginBottom: '20px' }}>
             {/* prefetch={false} membantu mencegah bug pagination cache */}
             <Link 
-              href={`/v/${vid.id}_${makeSlug(vid.title as string)}`} 
+              href={`/v/${vid.id}_${makeSlug(vid.title)}`} 
               prefetch={false}
               style={{ display: 'block', textDecoration: 'none', color: 'inherit', height: '100%' }}
             >
@@ -148,18 +155,15 @@ export default async function HomePage({ searchParams }: { searchParams: any }) 
                 
                 {/* Thumbnail 16:9 */}
                 <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
+                  {/* Jika URL dari DB kosong, otomatis panggil /noimg.jpg */}
                   <img 
                     src={(vid.thumbnail_url as string) || '/noimg.jpg'} 
                     alt={vid.title} 
-                    // Jika gambar rusak (404/Error), otomatis ganti ke noimg.jpg
-                    onError={(e) => {
-                      e.currentTarget.src = '/noimg.jpg';
-                    }}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
                 </div>
                 
-                {/* Info Card dengan Tinggi Tetap */}
+                {/* Info Card dengan Tinggi Tetap (Sama Rata) */}
                 <div className="video-info-container">
                   <h4 className="video-card-title" title={vid.title}>
                     {vid.title}
