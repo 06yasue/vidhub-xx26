@@ -95,7 +95,7 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
           fontWeight: '700', 
           color: '#0f172a' 
         }}>
-          ✨ Latest & Popular Videos
+          ✨ Free Sex Videos
         </h2>
       </div>
 
