@@ -2,6 +2,12 @@ import { turso } from '@/lib/db';
 import Link from 'next/link';
 import AdDisplay from '@/components/AdDisplay'; 
 
+// =====================================================================
+// KUNCI UTAMA: Mematikan Cache Next.js agar selalu memuat data terbaru
+// =====================================================================
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const formatDate = (dateString: string) => {
   if (!dateString) return 'New';
   const date = new Date(dateString);
@@ -37,20 +43,20 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
     <div>
       {/* ================= CSS KHUSUS UNTUK KUNCI IKLAN & TIPOGRAFI ================= */}
       <style dangerouslySetInnerHTML={{__html: `
-        /* Kunci responsif iklan agar script pihak ketiga tidak error ukurannya */
-        .ads-desktop-wrapper { display: none; text-align: center; margin-bottom: 25px; }
-        .ads-mobile-wrapper { display: block; text-align: center; margin-bottom: 25px; }
+        /* Menggunakan !important agar tidak ditimpa oleh script Adsterra / Ads network lainnya */
+        .ads-desktop-wrapper { display: none !important; text-align: center; margin-bottom: 25px; }
+        .ads-mobile-wrapper { display: block !important; text-align: center; margin-bottom: 25px; }
         
         @media (min-width: 768px) {
-          .ads-desktop-wrapper { display: block; }
-          .ads-mobile-wrapper { display: none; }
+          .ads-desktop-wrapper { display: block !important; }
+          .ads-mobile-wrapper { display: none !important; }
         }
 
         /* Styling judul di dalam card agar rapi di HP maupun Desktop */
         .video-card-title {
           margin: 0 0 6px 0;
           font-weight: 600;
-          font-size: 13px; /* Ukuran font lebih pas untuk 2 kolom di HP */
+          font-size: 13px;
           color: #1e293b;
           line-height: 1.4;
           display: -webkit-box;
@@ -61,13 +67,13 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
         
         @media (min-width: 768px) {
           .video-card-title {
-            font-size: 15px; /* Lebih besar di desktop */
+            font-size: 15px;
             margin: 0 0 8px 0;
           }
         }
       `}} />
 
-      {/* ================= AREA IKLAN ATAS (DIKUNCI DENGAN CSS MURNI) ================= */}
+      {/* ================= AREA IKLAN ATAS ================= */}
       {ads.ads_desktop && (
         <div className="ads-desktop-wrapper">
           <AdDisplay htmlString={ads.ads_desktop as string} />
@@ -102,23 +108,16 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
       {/* ================= AREA CARD VIDEO ================= */}
       <div className="row">
         {videos.map((vid: any) => (
-          /* 
-            col-xs-6 = Di HP 2 Kolom
-            col-sm-4 = Di Tablet 3 Kolom
-            col-md-4 = Di Desktop 3 Kolom
-          */
           <div className="col-xs-6 col-sm-4 col-md-4" key={vid.id} style={{ marginBottom: '20px' }}>
             <Link href={`/v/${vid.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
               
-              {/* Card dengan Border Radius Sedikit (6px), Tanpa Shadow, Tanpa Hover */}
               <div style={{ 
                 backgroundColor: '#ffffff', 
                 border: '1px solid #e2e8f0',
                 borderRadius: '6px',
-                overflow: 'hidden' /* Supaya gambar ujungnya ikut melengkung sesuai border */
+                overflow: 'hidden'
               }}>
                 
-                {/* Thumbnail 16:9 */}
                 <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
                   <img 
                     src={vid.thumbnail_url} 
@@ -127,13 +126,11 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
                   />
                 </div>
                 
-                {/* Info Card - Simpel dan Bersih */}
                 <div style={{ padding: '10px 12px' }}>
                   <h4 className="video-card-title">
                     {vid.title}
                   </h4>
                   
-                  {/* Tanggal & Views */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
                     <span>{formatDate(vid.created_at)}</span>
                     <span>{(vid.hitcount || 0).toLocaleString()} Views</span>
