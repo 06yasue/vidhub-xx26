@@ -13,13 +13,15 @@ export async function generateMetadata({
 }: { 
   params: Promise<{ id: string }> 
 }): Promise<Metadata> {
-  const { id } = await params;
+  // Tangkap parameter asli, lalu ambil ID aslinya (teks sebelum '_')
+  const { id: rawId } = await params;
+  const actualId = rawId.split('_')[0];
   
   let video = null;
   try {
     const res = await turso.execute({
       sql: "SELECT title, thumbnail_url FROM videos WHERE id = ?",
-      args: [id]
+      args: [actualId] // Gunakan ID yang sudah diekstrak
     });
     video = res.rows[0];
   } catch (error) {
@@ -50,16 +52,18 @@ export default async function VideoPlayer({
 }: { 
   params: Promise<{ id: string }> 
 }) {
-  const { id } = await params;
+  // Tangkap parameter asli, lalu ambil ID aslinya (teks sebelum '_')
+  const { id: rawId } = await params;
+  const actualId = rawId.split('_')[0];
 
   let video: any = null;
   let ads: any = {};
   
   try {
-    // 1. Ambil Data Video
+    // 1. Ambil Data Video menggunakan ID yang sudah diekstrak
     const videoRes = await turso.execute({
       sql: "SELECT * FROM videos WHERE id = ?",
-      args: [id]
+      args: [actualId] 
     });
     video = videoRes.rows[0];
 
@@ -86,10 +90,10 @@ export default async function VideoPlayer({
   // AMBIL LINK OFFER DARI DATABASE SETTINGS (Key: url_offer)
   const targetOfferUrl = ads.ads_offer_link || '#';
 
-
   return (
     <>
-      <HitCounter videoId={id} />
+      {/* Pastikan HitCounter juga menggunakan actualId */}
+      <HitCounter videoId={actualId} />
 
       <style dangerouslySetInnerHTML={{__html: `
         * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
@@ -149,7 +153,8 @@ export default async function VideoPlayer({
               <div className="panel-heading player-header">
                   <div className="header-top">
                       <div className="brand-logo notranslate">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="#38bdf8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                          {/* Logo SVG sudah diganti menjadi img dari public folder */}
+                          <img src="/logo.webp" alt="Logo" width="18" height="18" />
                           <span>{siteConfig.site_name}</span>
                       </div>
                       <a href={siteConfig.url_ref} target="_blank" rel="noopener noreferrer" className="btn-register">Buat Akun</a>
