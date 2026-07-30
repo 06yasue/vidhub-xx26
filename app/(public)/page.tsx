@@ -3,7 +3,7 @@ import Link from 'next/link';
 import AdDisplay from '@/components/AdDisplay'; 
 
 // =====================================================================
-// KUNCI UTAMA: Mematikan Cache Next.js agar selalu memuat data terbaru
+// Mematikan Cache Next.js agar selalu memuat data terbaru
 // =====================================================================
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,8 +14,18 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export default async function HomePage({ searchParams }: { searchParams: { page?: string } }) {
-  const currentPage = parseInt(searchParams?.page || '1');
+// Fungsi untuk membuat URL ramah SEO (Contoh: video-lucu-banget)
+const makeSlug = (text: string) => {
+  if (!text) return '';
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
+
+// Gunakan tipe 'any' sementara dan await untuk kompatibilitas Next.js 14 & 15
+export default async function HomePage({ searchParams }: { searchParams: any }) {
+  // Await searchParams untuk mengatasi bug pagination di versi Next.js terbaru
+  const sp = await searchParams;
+  const currentPage = parseInt(sp?.page || '1');
+  
   const limit = 12; 
   const offset = (currentPage - 1) * limit;
 
@@ -41,9 +51,7 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
 
   return (
     <div>
-      {/* ================= CSS KHUSUS UNTUK KUNCI IKLAN & TIPOGRAFI ================= */}
       <style dangerouslySetInnerHTML={{__html: `
-        /* Menggunakan !important agar tidak ditimpa oleh script Adsterra / Ads network lainnya */
         .ads-desktop-wrapper { display: none !important; text-align: center; margin-bottom: 25px; }
         .ads-mobile-wrapper { display: block !important; text-align: center; margin-bottom: 25px; }
         
@@ -52,23 +60,35 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
           .ads-mobile-wrapper { display: none !important; }
         }
 
-        /* Styling judul di dalam card agar rapi di HP maupun Desktop */
+        /* Container text video dibuat fixed height agar tinggi card sama semua */
+        .video-info-container {
+          padding: 10px 12px;
+          height: 75px; /* Kunci tinggi area teks */
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        /* Styling judul di dalam card (Maksimal 2 baris + Titik-titik) */
         .video-card-title {
-          margin: 0 0 6px 0;
+          margin: 0;
           font-weight: 600;
           font-size: 13px;
           color: #1e293b;
           line-height: 1.4;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 2; /* Potong setelah 2 baris */
           -webkit-box-orient: vertical;
           overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         @media (min-width: 768px) {
+          .video-info-container {
+            height: 80px; /* Sedikit lebih tinggi di desktop */
+          }
           .video-card-title {
-            font-size: 15px;
-            margin: 0 0 8px 0;
+            font-size: 14px;
           }
         }
       `}} />
@@ -109,25 +129,39 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
       <div className="row">
         {videos.map((vid: any) => (
           <div className="col-xs-6 col-sm-4 col-md-4" key={vid.id} style={{ marginBottom: '20px' }}>
-            <Link href={`/v/${vid.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+            {/* prefetch={false} membantu mencegah bug pagination cache */}
+            <Link 
+              href={`/v/${vid.id}_${makeSlug(vid.title as string)}`} 
+              prefetch={false}
+              style={{ display: 'block', textDecoration: 'none', color: 'inherit', height: '100%' }}
+            >
               
               <div style={{ 
                 backgroundColor: '#ffffff', 
                 border: '1px solid #e2e8f0',
                 borderRadius: '6px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
                 
+                {/* Thumbnail 16:9 */}
                 <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
                   <img 
-                    src={vid.thumbnail_url} 
+                    src={(vid.thumbnail_url as string) || '/noimg.jpg'} 
                     alt={vid.title} 
+                    // Jika gambar rusak (404/Error), otomatis ganti ke noimg.jpg
+                    onError={(e) => {
+                      e.currentTarget.src = '/noimg.jpg';
+                    }}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
                 </div>
                 
-                <div style={{ padding: '10px 12px' }}>
-                  <h4 className="video-card-title">
+                {/* Info Card dengan Tinggi Tetap */}
+                <div className="video-info-container">
+                  <h4 className="video-card-title" title={vid.title}>
                     {vid.title}
                   </h4>
                   
@@ -154,13 +188,13 @@ export default async function HomePage({ searchParams }: { searchParams: { page?
         <div className="text-center" style={{ marginTop: '20px', marginBottom: '30px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
             {currentPage > 1 ? (
-              <Link href={`/?page=${currentPage - 1}`} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>&laquo; Prev</Link>
+              <Link href={`/?page=${currentPage - 1}`} prefetch={false} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>&laquo; Prev</Link>
             ) : (
               <button className="btn btn-default" disabled style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>&laquo; Prev</button>
             )}
             
             {currentPage < totalPages ? (
-              <Link href={`/?page=${currentPage + 1}`} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>Next &raquo;</Link>
+              <Link href={`/?page=${currentPage + 1}`} prefetch={false} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>Next &raquo;</Link>
             ) : (
               <button className="btn btn-default" disabled style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>Next &raquo;</button>
             )}
