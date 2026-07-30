@@ -72,109 +72,134 @@ export default async function PublicLayout({ children }: { children: React.React
             font-family: 'Poppins', sans-serif !important;
             -webkit-font-smoothing: antialiased;
           }
+          
           .main-content { 
             flex: 1; 
-            padding-top: 30px;
+            padding-top: 20px;
             padding-bottom: 50px;
           }
           
-          /* ================= HEADER PREMIUM ================= */
-          .navbar-custom {
+          /* ================= HEADER RAPI & RESPONSIVE ================= */
+          .header-wrapper {
             background-color: #ffffff;
-            border: none;
-            border-radius: 0;
-            margin-bottom: 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             position: sticky;
             top: 0;
             z-index: 1000;
+            width: 100%;
+            padding: 12px 0;
           }
-          .navbar-header-custom {
+          
+          .header-inner {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            height: 75px;
-          }
-          .navbar-brand { 
-            display: flex; 
-            align-items: center; 
-            padding: 0; 
-            height: 100%;
-            text-decoration: none !important;
-          }
-          .navbar-brand img { 
-            height: 42px; 
-            margin-right: 14px; 
-            object-fit: contain; 
-          }
-          .navbar-brand b {
-            color: #0f172a;
-            font-size: 24px;
-            letter-spacing: -0.3px;
-            font-weight: 800;
+            padding: 0 15px;
           }
           
-          /* TOMBOL CREATE ACCOUNT */
+          .brand-area { 
+            display: flex; 
+            align-items: center; 
+            text-decoration: none !important;
+            gap: 10px;
+          }
+          
+          .brand-area img { 
+            height: 36px; 
+            object-fit: contain; 
+          }
+          
+          .brand-area b {
+            color: #0f172a;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+          }
+          
+          /* TOMBOL CREATE ACCOUNT (ANTI-NUMPUK) */
           .btn-create-account {
             background-color: #0ea5e9;
             color: #ffffff !important;
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
             font-size: 14px;
-            padding: 10px 24px;
-            border-radius: 8px;
+            padding: 8px 18px;
+            border-radius: 6px;
             border: none;
-            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
             text-decoration: none !important;
+            white-space: nowrap; /* Mencegah teks turun ke baris bawah */
+            transition: all 0.2s ease;
           }
+          
           .btn-create-account:hover {
             background-color: #0284c7;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
           }
 
-          /* ================= FOOTER MINIMALIS ================= */
-          .footer { 
+          /* ================= FOOTER ELEGAN ================= */
+          .footer-wrapper { 
             background: #0f172a; 
             color: #94a3b8; 
-            padding: 25px 0; 
+            padding: 20px 0; 
             margin-top: auto; 
             text-align: center; 
-            font-family: 'Poppins', sans-serif;
+            border-top: 1px solid #1e293b;
           }
-          .copyright {
+          
+          .copyright-text {
             font-size: 13px;
             font-weight: 500;
-            letter-spacing: 0.3px;
+            margin: 0;
           }
           
           /* ================= AREA IKLAN ================= */
           .ads-container {
-            margin: 20px auto;
+            margin: 15px auto;
             text-align: center;
             width: 100%;
             display: flex;
             justify-content: center;
           }
+
+          /* ================= FIX MOBILE (LAYAR KECIL) ================= */
+          @media (max-width: 576px) {
+            .header-inner {
+              padding: 0 10px;
+            }
+            .brand-area img { 
+              height: 28px; 
+            }
+            .brand-area b {
+              font-size: 18px;
+            }
+            .btn-create-account {
+              font-size: 12px;
+              padding: 6px 12px;
+            }
+            .btn-create-account .material-icons-round {
+              font-size: 16px !important;
+            }
+          }
         `}} />
       </head>
       <body>
         
-        {/* SCRIPT ADS POPUNDER ADSTERRA DLL DARI DATABASE */}
-        {/* Diletakkan di body dalam format raw HTML agar tag <script> bawaan Adsterra tidak error */}
+        {/* SCRIPT ADS POPUNDER ADSTERRA DARI DATABASE (Aman dari error) */}
         {ads.ads_head && (
           <div dangerouslySetInnerHTML={{ __html: ads.ads_head }} style={{ display: 'none' }} />
         )}
 
         {/* HEADER AREA */}
-        <nav className="navbar navbar-default navbar-custom">
+        <header className="header-wrapper">
           <div className="container">
-            <div className="navbar-header-custom">
-              <a className="navbar-brand" href="/">
+            <div className="header-inner">
+              <a className="brand-area" href="/">
                 <img src="/logo.webp" alt={`${siteConfig.site_name} Logo`} />
                 <b>{siteConfig.site_name}</b>
               </a>
@@ -185,16 +210,16 @@ export default async function PublicLayout({ children }: { children: React.React
                 rel="noopener noreferrer" 
                 className="btn-create-account" 
               >
-                <span className="material-icons-round" style={{ fontSize: '20px' }}>person_add</span>
+                <span className="material-icons-round" style={{ fontSize: '18px' }}>person_add</span>
                 Create Account
               </a>
             </div>
           </div>
-        </nav>
+        </header>
         
         {/* SLOT IKLAN VISUAL BAWAH HEADER */}
         {ads.ads_head_global && (
-          <div className="container ads-container" style={{ marginTop: '25px', marginBottom: '0' }}>
+          <div className="container ads-container" style={{ marginTop: '20px', marginBottom: '0' }}>
             <AdDisplay htmlString={ads.ads_head_global as string} />
           </div>
         )}
@@ -205,19 +230,19 @@ export default async function PublicLayout({ children }: { children: React.React
         </div>
 
         {/* FOOTER AREA */}
-        <footer className="footer">
+        <footer className="footer-wrapper">
           <div className="container">
             
             {/* SLOT IKLAN AREA FOOTER */}
             {ads.ads_footer && (
-              <div className="ads-container" style={{ marginTop: '0', marginBottom: '20px' }}>
+              <div className="ads-container" style={{ marginTop: '0', marginBottom: '15px' }}>
                 <AdDisplay htmlString={ads.ads_footer as string} />
               </div>
             )}
 
-            <div className="copyright">
+            <p className="copyright-text">
               &copy; {new Date().getFullYear()} {siteConfig.site_name}. All rights reserved.
-            </div>
+            </p>
 
           </div>
         </footer>
