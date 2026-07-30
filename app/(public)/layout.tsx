@@ -2,7 +2,7 @@ import '../globals.css';
 import { siteConfig } from '@/config'; 
 import { Metadata } from 'next';
 import { turso } from '@/lib/db';
-import AdDisplay from '@/components/AdDisplay'; // Pastikan komponen ini tersedia
+import AdDisplay from '@/components/AdDisplay';
 
 // ================= AREA SEO SUPER =================
 export const metadata: Metadata = {
@@ -37,7 +37,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Ubah menjadi async function agar bisa memanggil database
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   
   // ================= AMBIL DATA IKLAN DARI DATABASE =================
@@ -55,38 +54,37 @@ export default async function PublicLayout({ children }: { children: React.React
     <html lang="en">
       <head>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
-        {/* IMPORT GOOGLE MATERIAL ICONS */}
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+        {/* IMPORT GOOGLE FONT & ICONS */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
         
-        {/* SLOT IKLAN MURNI DI DALAM TAG HEAD (Jika diperlukan dari DB) */}
-        {ads.ads_head && (
-          <script dangerouslySetInnerHTML={{ __html: ads.ads_head }} />
-        )}
-
         <style dangerouslySetInnerHTML={{__html: `
           body { 
-            background-color: #f8fafc; 
+            background-color: #f1f5f9; 
             display: flex; 
             flex-direction: column; 
             min-height: 100vh; 
             margin: 0;
             padding: 0;
-            overflow-x: hidden; /* MENCEGAH LAYAR DIGESER KE KANAN/KIRI */
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden; 
+            font-family: 'Poppins', sans-serif !important;
+            -webkit-font-smoothing: antialiased;
           }
           .main-content { 
             flex: 1; 
-            padding-top: 20px;
-            padding-bottom: 40px;
+            padding-top: 30px;
+            padding-bottom: 50px;
           }
           
-          /* HEADER STYLING DENGAN DESAIN BARU */
+          /* ================= HEADER PREMIUM ================= */
           .navbar-custom {
             background-color: #ffffff;
             border: none;
             border-radius: 0;
             margin-bottom: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -96,62 +94,65 @@ export default async function PublicLayout({ children }: { children: React.React
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            height: 70px;
+            height: 75px;
           }
           .navbar-brand { 
             display: flex; 
             align-items: center; 
-            padding: 0 15px; 
+            padding: 0; 
             height: 100%;
+            text-decoration: none !important;
           }
           .navbar-brand img { 
-            height: 40px; 
-            margin-right: 12px; 
+            height: 42px; 
+            margin-right: 14px; 
             object-fit: contain; 
           }
           .navbar-brand b {
             color: #0f172a;
             font-size: 24px;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             font-weight: 800;
           }
           
-          /* TOMBOL CREATE ACCOUNT DENGAN ICON */
+          /* TOMBOL CREATE ACCOUNT */
           .btn-create-account {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white !important;
+            background-color: #0ea5e9;
+            color: #ffffff !important;
+            font-family: 'Poppins', sans-serif;
             font-weight: 600;
             font-size: 14px;
-            padding: 10px 22px;
-            border-radius: 50px;
+            padding: 10px 24px;
+            border-radius: 8px;
             border: none;
-            margin-right: 15px;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+            gap: 8px;
             text-decoration: none !important;
           }
           .btn-create-account:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
-            color: white;
+            background-color: #0284c7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
           }
 
-          /* FOOTER STYLING MINIMALIS */
+          /* ================= FOOTER MINIMALIS ================= */
           .footer { 
             background: #0f172a; 
             color: #94a3b8; 
-            padding: 30px 0; 
+            padding: 25px 0; 
             margin-top: auto; 
             text-align: center; 
+            font-family: 'Poppins', sans-serif;
           }
           .copyright {
             font-size: 13px;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
           }
+          
+          /* ================= AREA IKLAN ================= */
           .ads-container {
             margin: 20px auto;
             text-align: center;
@@ -163,10 +164,16 @@ export default async function PublicLayout({ children }: { children: React.React
       </head>
       <body>
         
+        {/* SCRIPT ADS POPUNDER ADSTERRA DLL DARI DATABASE */}
+        {/* Diletakkan di body dalam format raw HTML agar tag <script> bawaan Adsterra tidak error */}
+        {ads.ads_head && (
+          <div dangerouslySetInnerHTML={{ __html: ads.ads_head }} style={{ display: 'none' }} />
+        )}
+
         {/* HEADER AREA */}
         <nav className="navbar navbar-default navbar-custom">
           <div className="container">
-            <div className="navbar-header navbar-header-custom">
+            <div className="navbar-header-custom">
               <a className="navbar-brand" href="/">
                 <img src="/logo.webp" alt={`${siteConfig.site_name} Logo`} />
                 <b>{siteConfig.site_name}</b>
@@ -178,17 +185,16 @@ export default async function PublicLayout({ children }: { children: React.React
                 rel="noopener noreferrer" 
                 className="btn-create-account" 
               >
-                {/* ICON DARI GOOGLE FONTS */}
-                <span className="material-icons" style={{ fontSize: '18px' }}>person_add</span>
+                <span className="material-icons-round" style={{ fontSize: '20px' }}>person_add</span>
                 Create Account
               </a>
             </div>
           </div>
         </nav>
         
-        {/* SLOT IKLAN VISUAL BAWAH HEADER (Membaca ads_head_global) */}
+        {/* SLOT IKLAN VISUAL BAWAH HEADER */}
         {ads.ads_head_global && (
-          <div className="container ads-container" style={{ marginTop: '20px', marginBottom: '0' }}>
+          <div className="container ads-container" style={{ marginTop: '25px', marginBottom: '0' }}>
             <AdDisplay htmlString={ads.ads_head_global as string} />
           </div>
         )}
@@ -202,7 +208,7 @@ export default async function PublicLayout({ children }: { children: React.React
         <footer className="footer">
           <div className="container">
             
-            {/* SLOT IKLAN AREA FOOTER (Membaca ads_footer) */}
+            {/* SLOT IKLAN AREA FOOTER */}
             {ads.ads_footer && (
               <div className="ads-container" style={{ marginTop: '0', marginBottom: '20px' }}>
                 <AdDisplay htmlString={ads.ads_footer as string} />
