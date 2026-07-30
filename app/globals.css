@@ -1,3 +1,8 @@
+body { 
+  font-family: 'Poppins', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Menghilangkan garis hitam/outline bawaan browser saat elemen diklik/fokus */
 *:focus {
   outline: none !important;
