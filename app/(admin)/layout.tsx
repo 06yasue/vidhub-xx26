@@ -1,6 +1,6 @@
 import '../globals.css';
 // Sesuaikan path import dengan lokasi file Navbar-mu
-import Navbar from './Navbar'; 
+import Navbar from '@/components/Navbar';
 
 export const metadata = { title: 'Admin Dashboard' };
 
