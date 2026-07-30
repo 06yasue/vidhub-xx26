@@ -10,14 +10,17 @@ export async function POST(request: Request) {
     const validPassword = process.env.ADMIN_PASSWORD;
 
     if (email === validEmail && password === validPassword) {
-      // Jika benar, pasang cookie sesi admin selama 7 hari
-      cookies().set('admin_session', 'authenticated', {
+      // PERBAIKAN: Gunakan await cookies() untuk Next.js versi terbaru
+      const cookieStore = await cookies();
+      
+      cookieStore.set('admin_session', 'authenticated', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 60 * 60 * 24 * 7, // 1 minggu
         path: '/',
       });
+      
       return NextResponse.json({ success: true, message: 'Login successful!' });
     }
 
