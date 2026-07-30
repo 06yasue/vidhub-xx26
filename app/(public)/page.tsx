@@ -1,182 +1,282 @@
-import { turso } from '@/lib/db';
-import Link from 'next/link';
-import AdDisplay from '@/components/AdDisplay'; 
+'use client'
+import { useState } from 'react';
 
-// =====================================================================
-// KUNCI UTAMA: Mematikan Cache Next.js agar selalu memuat data terbaru
-// =====================================================================
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export default function UploadPage() {
+  // State Manual Upload
+  const [loading, setLoading] = useState(false);
+  const [resultUrl, setResultUrl] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [copied, setCopied] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
 
-const formatDate = (dateString: string) => {
-  if (!dateString) return 'New';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-};
+  // State Bulk Upload (TXT)
+  const [txtLoading, setTxtLoading] = useState(false);
+  const [txtMessage, setTxtMessage] = useState({ text: '', type: '' });
 
-export default async function HomePage({ searchParams }: { searchParams: { page?: string } }) {
-  const currentPage = parseInt(searchParams?.page || '1');
-  const limit = 12; 
-  const offset = (currentPage - 1) * limit;
+  const IMGBB_API_KEY = 'f44379100f284593d7a3f7bf708c8a59';
 
-  const videosRes = await turso.execute({
-    sql: "SELECT * FROM videos ORDER BY created_at DESC LIMIT ? OFFSET ?",
-    args: [limit, offset]
-  });
-  const videos = videosRes.rows;
+  // ===================== HANDLER MANUAL UPLOAD =====================
+  const handleSubmitManual = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ text: '', type: '' });
+    setResultUrl('');
 
-  const countRes = await turso.execute("SELECT COUNT(*) as total FROM videos");
-  const totalVideos = Number(countRes.rows[0].total);
-  const totalPages = Math.ceil(totalVideos / limit) || 1;
+    const formData = new FormData(e.currentTarget);
+    let finalThumbnailUrl = imageUrl;
 
-  let ads: any = {};
-  try {
-    const settingsRes = await turso.execute("SELECT * FROM settings");
-    settingsRes.rows.forEach((row) => {
-      ads[row.key as string] = row.value;
-    });
-  } catch (error) {
-    console.error("Gagal mengambil data settings:", error);
-  }
+    try {
+      if (imageFile) {
+        setMessage({ text: 'Mengunggah gambar ke ImgBB...', type: 'info' });
+        const imgData = new FormData();
+        imgData.append('image', imageFile);
+        
+        const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: 'POST',
+          body: imgData
+        });
+        const imgJson = await imgRes.json();
+        
+        if (imgJson.success) {
+          finalThumbnailUrl = imgJson.data.url;
+        } else {
+          throw new Error('Gagal upload gambar ke ImgBB');
+        }
+      }
+
+      if (!finalThumbnailUrl) throw new Error('URL atau file Thumbnail wajib diisi!');
+
+      setMessage({ text: 'Menyimpan data video...', type: 'info' });
+      const data = {
+        type: 'manual', // Penanda untuk API
+        title: formData.get('title'),
+        embed_url: formData.get('embed_url'),
+        thumbnail_url: finalThumbnailUrl
+      };
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const json = await res.json();
+      
+      if (res.ok) {
+        setMessage({ text: 'Video berhasil disimpan!', type: 'success' });
+        setResultUrl(`${window.location.origin}/v/${json.id}`);
+        (e.target as HTMLFormElement).reset();
+        setImageFile(null);
+        setImageUrl('');
+      } else {
+        throw new Error(json.error);
+      }
+    } catch (error: any) {
+      setMessage({ text: error.message || 'Terjadi kesalahan sistem', type: 'danger' });
+    }
+    setLoading(false);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(resultUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // ===================== HANDLER BULK UPLOAD (TXT) =====================
+  const handleTxtUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setTxtMessage({ text: 'Membaca file...', type: 'info' });
+    setTxtLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split('\n');
+      let isValid = true;
+      let errorLine = 0;
+
+      // Validasi ketat format data per baris
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue; // Abaikan baris kosong
+
+        const parts = line.split('|');
+        // Harus pas 5 bagian: ID | Title | Link | Thumbnail | Date
+        if (parts.length !== 5) {
+          isValid = false;
+          errorLine = i + 1;
+          break;
+        }
+      }
+
+      if (!isValid) {
+        setTxtMessage({ 
+          text: `Format salah pada baris ke-${errorLine}! Pastikan formatnya tepat: ID|Title|Website link|Main thumbnail|Publish date, time`, 
+          type: 'danger' 
+        });
+        setTxtLoading(false);
+        e.target.value = ''; // Reset input file
+        return;
+      }
+
+      // Jika valid, kirim ke API
+      try {
+        setTxtMessage({ text: 'Memproses dan menyimpan data ke database...', type: 'info' });
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'bulk', content: text }),
+        });
+
+        const json = await res.json();
+        
+        if (res.ok) {
+          setTxtMessage({ text: json.message, type: 'success' });
+          e.target.value = ''; // Reset file input setelah sukses
+        } else {
+          throw new Error(json.error);
+        }
+      } catch (error: any) {
+        setTxtMessage({ text: error.message || 'Gagal mengunggah file TXT.', type: 'danger' });
+      } finally {
+        setTxtLoading(false);
+      }
+    };
+    
+    reader.readAsText(file);
+  };
 
   return (
-    <div>
-      {/* ================= CSS KHUSUS UNTUK KUNCI IKLAN & TIPOGRAFI ================= */}
-      <style dangerouslySetInnerHTML={{__html: `
-        /* Menggunakan !important agar tidak ditimpa oleh script Adsterra / Ads network lainnya */
-        .ads-desktop-wrapper { display: none !important; text-align: center; margin-bottom: 25px; }
-        .ads-mobile-wrapper { display: block !important; text-align: center; margin-bottom: 25px; }
+    <div className="row">
+      <div className="col-md-6 col-md-offset-3">
         
-        @media (min-width: 768px) {
-          .ads-desktop-wrapper { display: block !important; }
-          .ads-mobile-wrapper { display: none !important; }
-        }
-
-        /* Styling judul di dalam card agar rapi di HP maupun Desktop */
-        .video-card-title {
-          margin: 0 0 6px 0;
-          font-weight: 600;
-          font-size: 13px;
-          color: #1e293b;
-          line-height: 1.4;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        
-        @media (min-width: 768px) {
-          .video-card-title {
-            font-size: 15px;
-            margin: 0 0 8px 0;
-          }
-        }
-      `}} />
-
-      {/* ================= AREA IKLAN ATAS ================= */}
-      {ads.ads_desktop && (
-        <div className="ads-desktop-wrapper">
-          <AdDisplay htmlString={ads.ads_desktop as string} />
-        </div>
-      )}
-      
-      {ads.ads_mobile && (
-        <div className="ads-mobile-wrapper">
-          <AdDisplay htmlString={ads.ads_mobile as string} />
-        </div>
-      )}
-
-      {/* ================= AREA HEADER KONTEN ================= */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-        borderBottom: '2px solid #e2e8f0',
-        paddingBottom: '10px'
-      }}>
-        <h2 style={{ 
-          margin: 0, 
-          fontSize: '18px', 
-          fontWeight: '700', 
-          color: '#0f172a' 
-        }}>
-          ✨ Free Sex Videos
-        </h2>
-      </div>
-
-      {/* ================= AREA CARD VIDEO ================= */}
-      <div className="row">
-        {videos.map((vid: any) => (
-          <div className="col-xs-6 col-sm-4 col-md-4" key={vid.id} style={{ marginBottom: '20px' }}>
-            <Link href={`/v/${vid.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-              
-              <div style={{ 
-                backgroundColor: '#ffffff', 
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                overflow: 'hidden'
-              }}>
-                
-                <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#0f172a' }}>
-                  <img 
-                    src={vid.thumbnail_url} 
-                    alt={vid.title} 
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
-                  />
-                </div>
-                
-                <div style={{ padding: '10px 12px' }}>
-                  <h4 className="video-card-title">
-                    {vid.title}
-                  </h4>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
-                    <span>{formatDate(vid.created_at)}</span>
-                    <span>{(vid.hitcount || 0).toLocaleString()} Views</span>
-                  </div>
-                </div>
-
-              </div>
-            </Link>
+        {/* ================= PANEL 1: MANUAL UPLOAD ================= */}
+        {message.text && (
+          <div className={`alert alert-${message.type}`} style={{ borderRadius: '0' }}>
+            {message.text}
           </div>
-        ))}
-        
-        {videos.length === 0 && (
-           <div className="col-xs-12 text-center text-muted" style={{ padding: '50px 0', fontSize: '15px' }}>
-             No videos available yet.
-           </div>
         )}
-      </div>
 
-      {/* ================= AREA PAGINATION ================= */}
-      {totalPages > 1 && (
-        <div className="text-center" style={{ marginTop: '20px', marginBottom: '30px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-            {currentPage > 1 ? (
-              <Link href={`/?page=${currentPage - 1}`} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>&laquo; Prev</Link>
-            ) : (
-              <button className="btn btn-default" disabled style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>&laquo; Prev</button>
-            )}
+        <div className="panel panel-default" style={{ borderRadius: '0', border: '1px solid #e2e8f0' }}>
+          <div className="panel-heading" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <h3 className="panel-title" style={{ fontWeight: '600' }}>
+              <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'text-bottom' }}>edit</span> Upload Manual
+            </h3>
+          </div>
+          <div className="panel-body">
+            <form onSubmit={handleSubmitManual}>
+              <div className="form-group">
+                <label>Judul Video</label>
+                <input type="text" name="title" className="form-control" style={{ borderRadius: '0' }} required placeholder="Contoh: Video Kucing" />
+              </div>
+              
+              <div className="form-group">
+                <label>URL Embed (Iframe src)</label>
+                <input type="url" name="embed_url" className="form-control" style={{ borderRadius: '0' }} required placeholder="https://..." />
+              </div>
+
+              <hr />
+              <label>Thumbnail Video (Pilih salah satu)</label>
+              
+              <div className="form-group">
+                <label className="text-muted" style={{ fontWeight: 'normal' }}>1. Upload Gambar langsung:</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="form-control" 
+                  style={{ borderRadius: '0' }}
+                  onChange={(e) => {
+                    if(e.target.files && e.target.files[0]) {
+                      setImageFile(e.target.files[0]);
+                      setImageUrl('');
+                    }
+                  }} 
+                />
+              </div>
+
+              <p className="text-center"><b>ATAU</b></p>
+
+              <div className="form-group">
+                <label className="text-muted" style={{ fontWeight: 'normal' }}>2. Masukkan URL Gambar Manual:</label>
+                <input 
+                  type="url" 
+                  className="form-control" 
+                  style={{ borderRadius: '0' }}
+                  value={imageUrl}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value);
+                    setImageFile(null);
+                  }} 
+                  placeholder="https://..." 
+                  disabled={!!imageFile} 
+                />
+              </div>
+
+              <hr />
+              <button type="submit" className="btn btn-primary btn-block" style={{ borderRadius: '0' }} disabled={loading}>
+                {loading ? 'Memproses...' : 'Simpan Video'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {resultUrl && (
+          <div className="panel panel-success" style={{ borderRadius: '0' }}>
+            <div className="panel-heading">Berhasil! Ini URL Video Anda:</div>
+            <div className="panel-body">
+              <div className="input-group">
+                <input type="text" className="form-control" style={{ borderRadius: '0' }} readOnly value={resultUrl} />
+                <span className="input-group-btn">
+                  <button className={`btn btn-${copied ? 'success' : 'default'}`} style={{ borderRadius: '0' }} type="button" onClick={handleCopy}>
+                    {copied ? 'Tersalin!' : 'Copy URL'}
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= PANEL 2: BULK UPLOAD TXT ================= */}
+        <div style={{ marginTop: '40px' }}></div>
+        
+        {txtMessage.text && (
+          <div className={`alert alert-${txtMessage.type}`} style={{ borderRadius: '0' }}>
+            {txtMessage.text}
+          </div>
+        )}
+
+        <div className="panel panel-default" style={{ borderRadius: '0', border: '1px solid #e2e8f0' }}>
+          <div className="panel-heading" style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <h3 className="panel-title" style={{ fontWeight: '600' }}>
+              <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'text-bottom' }}>file_upload</span> Upload Massal (.txt)
+            </h3>
+          </div>
+          <div className="panel-body">
+            <div className="alert alert-warning" style={{ borderRadius: '0', fontSize: '13px' }}>
+              <strong>Perhatian!</strong> Format setiap baris dalam file .txt HARUS persis seperti ini:<br/>
+              <code>ID|Title|Website link|Main thumbnail|Publish date, time</code><br/>
+              <em>Contoh: 1234|Video Lucu|https://web.com/vid|https://gambar.jpg|2026-07-15 23:10:25</em>
+            </div>
             
-            {currentPage < totalPages ? (
-              <Link href={`/?page=${currentPage + 1}`} className="btn btn-default" style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>Next &raquo;</Link>
-            ) : (
-              <button className="btn btn-default" disabled style={{ fontWeight: '600', padding: '6px 14px', borderRadius: '4px' }}>Next &raquo;</button>
-            )}
-          </div>
-          <div style={{ marginTop: '10px', color: '#64748b', fontSize: '13px', fontWeight: '500' }}>
-            Page {currentPage} of {totalPages}
+            <div className="form-group">
+              <label>Pilih File .txt</label>
+              <input 
+                type="file" 
+                accept=".txt"
+                className="form-control" 
+                style={{ borderRadius: '0' }}
+                onChange={handleTxtUpload} 
+                disabled={txtLoading}
+              />
+            </div>
           </div>
         </div>
-      )}
 
-      {/* ================= IKLAN BODY ================= */}
-      {ads.ads_body && (
-        <div className="text-center" style={{ marginTop: '20px', marginBottom: '20px' }}>
-          <AdDisplay htmlString={ads.ads_body as string} />
-        </div>
-      )}
+      </div>
     </div>
   );
 }
